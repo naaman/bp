@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+  //"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
-  "bytes"
-  "strconv"
+  //"bytes"
+  //"strconv"
 	"time"
   "os"
 )
@@ -91,13 +92,13 @@ func main() {
   fmt.Println(tarFile.Name())
 
 	tarGz(tarFile.Name(), strings.TrimRight(bp.env.buildDir, "/"))
-  completeTarFile, _ := os.Open(tarFile.Name())
   defer tarFile.Close()
+  completeTarFile, _ := os.Open(tarFile.Name())
   tarFileStat, _ := completeTarFile.Stat()
-  tarFileSize := strconv.FormatInt(tarFileStat.Size(), 10)
+  //tarFileSize := strconv.FormatInt(tarFileStat.Size(), 10)
 
-	client := http.DefaultClient
-	res, _ := client.Do(createSlug())
+	client := &http.DefaultClient
+  res, _ := client.Do(createSlug())
 	bod, _ := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
 
@@ -106,10 +107,8 @@ func main() {
   fmt.Printf("%+v\n", slugJson)
 	putUrl := slugJson.Blob["put"]
   
-  f, _ := ioutil.ReadAll(completeTarFile)
-  fmt.Println(f)
-  req, _ := http.NewRequest("PUT", putUrl, bytes.NewReader(f))
-  req.Header.Add("Content-Length", tarFileSize)
+  req, _ := http.NewRequest("PUT", putUrl, completeTarFile)
+  req.ContentLength = tarFileStat.Size()
   fmt.Printf("%+v\n", req)
   res, err = client.Do(req)
   if err != nil {
