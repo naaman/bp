@@ -65,26 +65,26 @@ func handleError(_e error) {
 }
 
 func targzWrite(path string, tw *tar.Writer, fi os.FileInfo) {
-  h, err := tar.FileInfoHeader(fi, path)
-  handleError(err)
+	h, err := tar.FileInfoHeader(fi, path)
+	handleError(err)
 
 	err = tw.WriteHeader(h)
 	handleError(err)
 
-  if fi.Mode()&os.ModeSymlink == 0 {
-    fr, err := os.Open(path)
-    handleError(err)
-    defer fr.Close()
+	if fi.Mode()&os.ModeSymlink == 0 {
+		fr, err := os.Open(path)
+		handleError(err)
+		defer fr.Close()
 
-    _, err = io.Copy(tw, fr)
-    handleError(err)
-  }
+		_, err = io.Copy(tw, fr)
+		handleError(err)
+	}
 }
 
 func targzWalk(dirPath string, tw *tar.Writer) {
 	filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if !info.IsDir() {
-      targzWrite(path, tw, info)
+			targzWrite(path, tw, info)
 		}
 
 		return nil
@@ -92,8 +92,8 @@ func targzWalk(dirPath string, tw *tar.Writer) {
 }
 
 func tarGz(outFilePath string, inPath string) {
-  wd, _ := os.Getwd()
-  os.Chdir(inPath)
+	wd, _ := os.Getwd()
+	os.Chdir(inPath)
 	// file write
 	fw, err := os.Create(outFilePath)
 	handleError(err)
@@ -109,5 +109,5 @@ func tarGz(outFilePath string, inPath string) {
 
 	targzWalk(".", tw)
 
-  os.Chdir(wd)
+	os.Chdir(wd)
 }

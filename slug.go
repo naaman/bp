@@ -4,14 +4,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-  //"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
-  //"bytes"
-  //"strconv"
+	"os"
 	"time"
-  "os"
 )
 
 var apiKey = flag.String("key", "", "API key")
@@ -33,7 +30,7 @@ type Slug struct {
 }
 
 type Release struct {
-  Version int `json:"version"`
+	Version int `json:"version"`
 }
 
 func herokuReq(method string, resource string, body string) *http.Request {
@@ -57,8 +54,8 @@ func createSlug() *http.Request {
 }
 
 func createRelease(s *Slug) *http.Request {
-  slugJson := fmt.Sprintf(`{"slug":"%s"}`, s.Id)
-  return herokuPost("releases", slugJson)
+	slugJson := fmt.Sprintf(`{"slug":"%s"}`, s.Id)
+	return herokuPost("releases", slugJson)
 }
 
 func parseProcfile() map[string]string {
@@ -90,42 +87,42 @@ func main() {
 		os.Exit(exit)
 	}
 
-  tarFile, _ := ioutil.TempFile(os.TempDir(), "slug") 
-  fmt.Println(tarFile.Name())
+	tarFile, _ := ioutil.TempFile(os.TempDir(), "slug")
+	fmt.Println(tarFile.Name())
 
-  fmt.Print("Creating slug archive...")
+	fmt.Print("Creating slug archive...")
 	tarGz(tarFile.Name(), strings.TrimRight(bp.env.buildDir, "/"))
-  fmt.Println("done")
-  defer tarFile.Close()
+	fmt.Println("done")
+	defer tarFile.Close()
 
-  tarFileStat, _ := tarFile.Stat()
+	tarFileStat, _ := tarFile.Stat()
 
 	client := &http.DefaultClient
-  fmt.Print("Creating slug...")
-  res, _ := client.Do(createSlug())
+	fmt.Print("Creating slug...")
+	res, _ := client.Do(createSlug())
 	bod, _ := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
 
 	slugJson := &Slug{}
 	json.Unmarshal(bod, &slugJson)
-  fmt.Println("done")
+	fmt.Println("done")
 	putUrl := slugJson.Blob["put"]
-  
-  req, _ := http.NewRequest("PUT", putUrl, tarFile)
-  req.ContentLength = tarFileStat.Size()
 
-  fmt.Print("Uploading slug...")
-  res, err = client.Do(req)
-  fmt.Println("done")
-  if err != nil {
-    panic(err)
-  }
+	req, _ := http.NewRequest("PUT", putUrl, tarFile)
+	req.ContentLength = tarFileStat.Size()
 
-  fmt.Print("Releasing slug...")
-  res, _ = client.Do(createRelease(slugJson))
-  bod, _ = ioutil.ReadAll(res.Body)
-  defer res.Body.Close()
-  releaseJson := &Release{}
-  json.Unmarshal(bod, &releaseJson)
-  fmt.Printf("done (v%d)\n", releaseJson.Version)
+	fmt.Print("Uploading slug...")
+	res, err = client.Do(req)
+	fmt.Println("done")
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Print("Releasing slug...")
+	res, _ = client.Do(createRelease(slugJson))
+	bod, _ = ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	releaseJson := &Release{}
+	json.Unmarshal(bod, &releaseJson)
+	fmt.Printf("done (v%d)\n", releaseJson.Version)
 }

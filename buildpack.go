@@ -13,7 +13,7 @@ type Buildpack struct {
 	detect  string
 	compile string
 	release string
-  env     BuildEnv
+	env     BuildEnv
 }
 
 func NewBuildpack(basedir string) (Buildpack, error) {
@@ -54,8 +54,8 @@ func (b *Buildpack) Run(appdir string) (int, error) {
 	compileCmd := exec.Command(b.compile, b.env.buildDir, b.env.cacheDir, b.env.envFile)
 	compileOut, compileErr := compileCmd.CombinedOutput()
 	if compileErr != nil {
-    fmt.Println(string(compileOut))
-    fmt.Println(compileErr)
+		fmt.Println(string(compileOut))
+		fmt.Println(compileErr)
 		return -1, compileErr
 	}
 	releaseCmd := exec.Command(b.release, b.env.buildDir)
