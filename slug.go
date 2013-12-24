@@ -32,6 +32,10 @@ type Slug struct {
 	UpdatedAt    time.Time         `json:"updated_at"`
 }
 
+type Release struct {
+  Version int `json:"version"`
+}
+
 func herokuReq(method string, resource string, body string) *http.Request {
 	reqUrl := fmt.Sprintf("https://api.heroku.com/apps/%s/%s", *appName, resource)
 	req, _ := http.NewRequest(method, reqUrl, strings.NewReader(body))
@@ -49,13 +53,11 @@ func herokuPost(resource string, body string) *http.Request {
 func createSlug() *http.Request {
 	procTable := &ProcessTable{ProcessTypes: parseProcfile()}
 	procTableJson, _ := json.Marshal(procTable)
-	fmt.Println(string(procTableJson))
 	return herokuPost("slugs", string(procTableJson))
 }
 
 func createRelease(s *Slug) *http.Request {
   slugJson := fmt.Sprintf(`{"slug":"%s"}`, s.Id)
-  fmt.Println(slugJson)
   return herokuPost("releases", slugJson)
 }
 
@@ -91,37 +93,39 @@ func main() {
   tarFile, _ := ioutil.TempFile(os.TempDir(), "slug") 
   fmt.Println(tarFile.Name())
 
+  fmt.Print("Creating slug archive...")
 	tarGz(tarFile.Name(), strings.TrimRight(bp.env.buildDir, "/"))
+  fmt.Println("done")
   defer tarFile.Close()
-  completeTarFile, _ := os.Open(tarFile.Name())
-  tarFileStat, _ := completeTarFile.Stat()
-  //tarFileSize := strconv.FormatInt(tarFileStat.Size(), 10)
+
+  tarFileStat, _ := tarFile.Stat()
 
 	client := &http.DefaultClient
+  fmt.Print("Creating slug...")
   res, _ := client.Do(createSlug())
 	bod, _ := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
 
 	slugJson := &Slug{}
 	json.Unmarshal(bod, &slugJson)
-  fmt.Printf("%+v\n", slugJson)
+  fmt.Println("done")
 	putUrl := slugJson.Blob["put"]
   
-  req, _ := http.NewRequest("PUT", putUrl, completeTarFile)
+  req, _ := http.NewRequest("PUT", putUrl, tarFile)
   req.ContentLength = tarFileStat.Size()
-  fmt.Printf("%+v\n", req)
+
+  fmt.Print("Uploading slug...")
   res, err = client.Do(req)
+  fmt.Println("done")
   if err != nil {
     panic(err)
   }
-  bod, _ = ioutil.ReadAll(res.Body)
-  defer res.Body.Close()
-  fmt.Printf("%+v\n", res)
-  fmt.Println(string(bod))
 
+  fmt.Print("Releasing slug...")
   res, _ = client.Do(createRelease(slugJson))
   bod, _ = ioutil.ReadAll(res.Body)
   defer res.Body.Close()
-  fmt.Println(string(bod))
-
+  releaseJson := &Release{}
+  json.Unmarshal(bod, &releaseJson)
+  fmt.Printf("done (v%d)\n", releaseJson.Version)
 }
