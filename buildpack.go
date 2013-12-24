@@ -13,6 +13,7 @@ type Buildpack struct {
 	detect  string
 	compile string
 	release string
+  env     BuildEnv
 }
 
 func NewBuildpack(basedir string) (Buildpack, error) {
@@ -43,19 +44,21 @@ func (b *Buildpack) checkScripts() bool {
 }
 
 func (b *Buildpack) Run(appdir string) (int, error) {
-	buildEnv := newBuildEnv(appdir)
+	b.env = newBuildEnv(appdir)
 
-	detectCmd := exec.Command(b.detect, buildEnv.buildDir)
+	detectCmd := exec.Command(b.detect, b.env.buildDir)
 	detectOut, detectErr := detectCmd.CombinedOutput()
 	if detectErr != nil {
 		return -1, detectErr
 	}
-	compileCmd := exec.Command(b.compile, buildEnv.buildDir, buildEnv.cacheDir, buildEnv.envFile)
+	compileCmd := exec.Command(b.compile, b.env.buildDir, b.env.cacheDir, b.env.envFile)
 	compileOut, compileErr := compileCmd.CombinedOutput()
 	if compileErr != nil {
+    fmt.Println(string(compileOut))
+    fmt.Println(compileErr)
 		return -1, compileErr
 	}
-	releaseCmd := exec.Command(b.release, buildEnv.buildDir)
+	releaseCmd := exec.Command(b.release, b.env.buildDir)
 	releaseOut, releaseErr := releaseCmd.CombinedOutput()
 	if releaseErr != nil {
 		return -1, releaseErr
@@ -83,21 +86,5 @@ func newBuildEnv(appdir string) BuildEnv {
 		buildDir: buildDir,
 		cacheDir: cacheDir,
 		envFile:  envFile.Name(),
-	}
-}
-
-func main() {
-	baseDir := os.Args[1]
-	appDir := os.Args[2]
-	baseBuildpack, err := NewBuildpack(baseDir)
-	if err != nil {
-		fmt.Println(err)
-	} else {
-		exit, runErr := baseBuildpack.Run(appDir)
-		if runErr != nil {
-			fmt.Println(runErr)
-		} else {
-			fmt.Println(exit)
-		}
 	}
 }
