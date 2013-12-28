@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/naaman/pf"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -48,7 +49,12 @@ func herokuPost(resource string, body string) *http.Request {
 }
 
 func createSlug() *http.Request {
-	procTable := &ProcessTable{ProcessTypes: parseProcfile()}
+	procTable := new(ProcessTable)
+	procTable.ProcessTypes = make(map[string]string)
+	procfile := parseProcfile()
+	for _, e := range procfile.Entries {
+		procTable.ProcessTypes[e.Type] = e.Command
+	}
 	procTableJson, _ := json.Marshal(procTable)
 	return herokuPost("slugs", string(procTableJson))
 }
@@ -58,17 +64,10 @@ func createRelease(s *Slug) *http.Request {
 	return herokuPost("releases", slugJson)
 }
 
-func parseProcfile() map[string]string {
-	procfile, _ := ioutil.ReadFile(*srcDir + "/Procfile")
-	lines := strings.Split(string(procfile), "\n")
-	entries := make(map[string]string)
-	for _, l := range lines {
-		entry := strings.SplitN(l, ":", 2)
-		if len(entry) == 2 {
-			entries[entry[0]] = entry[1]
-		}
-	}
-	return entries
+func parseProcfile() *pf.Procfile {
+	procfileFile, _ := os.Open(*srcDir + "/Procfile")
+	procfile, _ := pf.ParseProcfile(procfileFile)
+	return procfile
 }
 
 func main() {
