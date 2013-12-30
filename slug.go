@@ -64,6 +64,13 @@ func createRelease(s *Slug) *http.Request {
 	return herokuPost("releases", slugJson)
 }
 
+func putSlug(slug *Slug, tarFile *os.File) *http.Request {
+	tarFileStat, _ := tarFile.Stat()
+	req, _ := http.NewRequest("PUT", slug.Blob["put"], tarFile)
+	req.ContentLength = tarFileStat.Size()
+	return req
+}
+
 func parseProcfile() *pf.Procfile {
 	procfileFile, _ := os.Open(*srcDir + "/Procfile")
 	procfile, _ := pf.ParseProcfile(procfileFile)
@@ -94,8 +101,6 @@ func main() {
 	fmt.Println("done")
 	defer tarFile.Close()
 
-	tarFileStat, _ := tarFile.Stat()
-
 	client := &http.DefaultClient
 	fmt.Print("Creating slug...")
 	res, _ := client.Do(createSlug())
@@ -105,13 +110,9 @@ func main() {
 	slugJson := &Slug{}
 	json.Unmarshal(bod, &slugJson)
 	fmt.Println("done")
-	putUrl := slugJson.Blob["put"]
-
-	req, _ := http.NewRequest("PUT", putUrl, tarFile)
-	req.ContentLength = tarFileStat.Size()
 
 	fmt.Print("Uploading slug...")
-	res, err = client.Do(req)
+	res, err = client.Do(putSlug(slugJson, tarFile))
 	fmt.Println("done")
 	if err != nil {
 		panic(err)
