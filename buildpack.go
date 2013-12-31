@@ -43,28 +43,25 @@ func (b *Buildpack) checkScripts() bool {
 		scriptIsValid(b.release)
 }
 
-func (b *Buildpack) Run(appdir string) (int, error) {
+func (b *Buildpack) Run(appdir string) error {
 	b.env = newBuildEnv(appdir)
 
 	detectCmd := exec.Command(b.detect, b.env.buildDir)
-	detectErr := execCmd(detectCmd, os.Stdout)
-	if detectErr != nil {
-		return -1, detectErr
+	if err := execCmd(detectCmd, os.Stdout); err != nil {
+		return nil
 	}
 
 	compileCmd := exec.Command(b.compile, b.env.buildDir, b.env.cacheDir, b.env.envFile)
-	compileErr := execCmd(compileCmd, os.Stdout)
-	if compileErr != nil {
-		return -1, compileErr
+	if err := execCmd(compileCmd, os.Stdout); err != nil {
+		return err
 	}
 
 	releaseCmd := exec.Command(b.release, b.env.buildDir)
-	releaseErr := execCmd(releaseCmd, os.Stdout)
-	if releaseErr != nil {
-		return -1, releaseErr
+	if err := execCmd(releaseCmd, os.Stdout); err != nil {
+		return err
 	}
 
-	return 0, nil
+	return nil
 }
 
 func execCmd(cmd *exec.Cmd, pipe io.Writer) error {

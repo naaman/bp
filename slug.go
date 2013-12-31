@@ -86,11 +86,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	exit, err := bp.Run(*srcDir)
-
-	if err != nil {
+	if err := bp.Run(*srcDir); err != nil {
 		fmt.Println(err)
-		os.Exit(exit)
+		os.Exit(1)
 	}
 
 	tarFile, _ := ioutil.TempFile(os.TempDir(), "slug")
