@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -47,27 +47,34 @@ func (b *Buildpack) Run(appdir string) (int, error) {
 	b.env = newBuildEnv(appdir)
 
 	detectCmd := exec.Command(b.detect, b.env.buildDir)
-	detectOut, detectErr := detectCmd.CombinedOutput()
+	detectErr := execCmd(detectCmd, os.Stdout)
 	if detectErr != nil {
 		return -1, detectErr
 	}
+
 	compileCmd := exec.Command(b.compile, b.env.buildDir, b.env.cacheDir, b.env.envFile)
-	compileOut, compileErr := compileCmd.CombinedOutput()
+	compileErr := execCmd(compileCmd, os.Stdout)
 	if compileErr != nil {
-		fmt.Println(string(compileOut))
-		fmt.Println(compileErr)
 		return -1, compileErr
 	}
+
 	releaseCmd := exec.Command(b.release, b.env.buildDir)
-	releaseOut, releaseErr := releaseCmd.CombinedOutput()
+	releaseErr := execCmd(releaseCmd, os.Stdout)
 	if releaseErr != nil {
 		return -1, releaseErr
 	}
-	fmt.Println(string(detectOut))
-	fmt.Println(string(compileOut))
-	fmt.Println(string(releaseOut))
 
 	return 0, nil
+}
+
+func execCmd(cmd *exec.Cmd, pipe io.Writer) error {
+	cmdOut, _ := cmd.StdoutPipe()
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	io.Copy(pipe, cmdOut)
+	err := cmd.Wait()
+	return err
 }
 
 type BuildEnv struct {
