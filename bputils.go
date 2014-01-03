@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -66,6 +67,7 @@ func handleError(_e error) {
 
 func targzWrite(path string, tw *tar.Writer, fi os.FileInfo) {
 	h, err := tar.FileInfoHeader(fi, path)
+	h.Name = "./app/" + path
 	handleError(err)
 
 	err = tw.WriteHeader(h)
@@ -91,13 +93,15 @@ func targzWalk(dirPath string, tw *tar.Writer) {
 	})
 }
 
-func tarGz(outFilePath string, inPath string) {
+func tarGz(inPath string) *os.File {
 	wd, _ := os.Getwd()
 	os.Chdir(inPath)
 	// file write
-	fw, err := os.Create(outFilePath)
+	tarFile, _ := ioutil.TempFile("", "slug")
+	tarFileName := tarFile.Name() + ".tgz"
+	os.Rename(tarFile.Name(), tarFileName)
+	fw, err := os.Create(tarFileName)
 	handleError(err)
-	defer fw.Close()
 
 	// gzip write
 	gw := gzip.NewWriter(fw)
@@ -110,4 +114,5 @@ func tarGz(outFilePath string, inPath string) {
 	targzWalk(".", tw)
 
 	os.Chdir(wd)
+	return fw
 }

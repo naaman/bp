@@ -65,7 +65,11 @@ func createRelease(s *Slug) *http.Request {
 }
 
 func putSlug(slug *Slug, tarFile *os.File) *http.Request {
-	tarFileStat, _ := tarFile.Stat()
+	tarFileStat, err := tarFile.Stat()
+	tarFile, _ = os.Open(tarFile.Name())
+	if err != nil {
+		panic(err)
+	}
 	req, _ := http.NewRequest("PUT", slug.Blob["put"], tarFile)
 	req.ContentLength = tarFileStat.Size()
 	return req
@@ -91,14 +95,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	tarFile, _ := ioutil.TempFile(os.TempDir(), "slug")
-	fmt.Println(tarFile.Name())
-
-	fmt.Print("Creating slug archive...")
-	tarGz(tarFile.Name(), strings.TrimRight(bp.env.buildDir, "/"))
-	fmt.Println("done")
-	defer tarFile.Close()
-
 	client := &http.DefaultClient
 	fmt.Print("Creating slug...")
 	res, _ := client.Do(createSlug())
@@ -109,8 +105,13 @@ func main() {
 	json.Unmarshal(bod, &slugJson)
 	fmt.Println("done")
 
+	fmt.Print("Creating slug archive...")
+	tarFile := tarGz(strings.TrimRight(bp.env.buildDir, "/"))
+	fmt.Printf("done (%s)\n", tarFile.Name())
+
 	fmt.Print("Uploading slug...")
 	res, err = client.Do(putSlug(slugJson, tarFile))
+	defer tarFile.Close()
 	fmt.Println("done")
 	if err != nil {
 		panic(err)
