@@ -66,37 +66,30 @@ func handleError(_e error) {
 	}
 }
 
-func targzWrite(path string, tw *tar.Writer, fi os.FileInfo) {
-	h, err := tar.FileInfoHeader(fi, "")
-	handleError(err)
-
-	h.Name = "./app/" + path
-
-	if fi.Mode()&os.ModeSymlink != 0 {
-		linkPath, err := os.Readlink(path)
-		handleError(err)
-		h.Linkname = linkPath
-	}
-
-	err = tw.WriteHeader(h)
-	handleError(err)
-
-	if fi.Mode()&os.ModeSymlink == 0 {
-		fr, err := os.Open(path)
-		handleError(err)
-		defer fr.Close()
-
-		_, err = io.Copy(tw, fr)
-		handleError(err)
-	}
-}
-
 func targzWalk(dirPath string, tw *tar.Writer) {
-	filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
-			targzWrite(path, tw, info)
+	filepath.Walk(dirPath, func(path string, fi os.FileInfo, err error) error {
+		h, err := tar.FileInfoHeader(fi, "")
+		handleError(err)
+
+		h.Name = "./app/" + path
+
+		if fi.Mode()&os.ModeSymlink != 0 {
+			linkPath, err := os.Readlink(path)
+			handleError(err)
+			h.Linkname = linkPath
 		}
 
+		err = tw.WriteHeader(h)
+		handleError(err)
+
+		if fi.Mode()&os.ModeDir == 0 && fi.Mode()&os.ModeSymlink == 0 {
+			fr, err := os.Open(path)
+			handleError(err)
+			defer fr.Close()
+
+			_, err = io.Copy(tw, fr)
+			handleError(err)
+		}
 		return nil
 	})
 }
