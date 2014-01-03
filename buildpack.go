@@ -47,29 +47,31 @@ func (b *Buildpack) Run(appdir string) error {
 	b.env = newBuildEnv(appdir)
 
 	detectCmd := exec.Command(b.detect, b.env.buildDir)
-	if err := execCmd(detectCmd, os.Stdout); err != nil {
+	if err := execCmd(detectCmd, os.Stdout, os.Stderr); err != nil {
 		return nil
 	}
 
 	compileCmd := exec.Command(b.compile, b.env.buildDir, b.env.cacheDir, b.env.envFile)
-	if err := execCmd(compileCmd, os.Stdout); err != nil {
+	if err := execCmd(compileCmd, os.Stdout, os.Stderr); err != nil {
 		return err
 	}
 
 	releaseCmd := exec.Command(b.release, b.env.buildDir)
-	if err := execCmd(releaseCmd, os.Stdout); err != nil {
+	if err := execCmd(releaseCmd, os.Stdout, os.Stderr); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func execCmd(cmd *exec.Cmd, pipe io.Writer) error {
+func execCmd(cmd *exec.Cmd, stdout io.Writer, stderr io.Writer) error {
 	cmdOut, _ := cmd.StdoutPipe()
+	cmdErr, _ := cmd.StderrPipe()
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-	io.Copy(pipe, cmdOut)
+	io.Copy(stdout, cmdOut)
+	io.Copy(stderr, cmdErr)
 	err := cmd.Wait()
 	return err
 }
