@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-  "fmt"
 )
 
 const executableFlag = 0111
@@ -73,23 +72,23 @@ func targzWrite(path string, tw *tar.Writer, fi os.FileInfo) {
 
 	h.Name = "./app/" + path
 
-  if fi.Mode() & os.ModeSymlink != 0 {
-    linkPath, err := os.Readlink(path)
-    handleError(err)
-    h.Linkname = linkPath
-  }
+	if fi.Mode()&os.ModeSymlink != 0 {
+		linkPath, err := os.Readlink(path)
+		handleError(err)
+		h.Linkname = linkPath
+	}
 
 	err = tw.WriteHeader(h)
 	handleError(err)
 
-  if fi.Mode() & os.ModeSymlink == 0 {
-    fr, err := os.Open(path)
+	if fi.Mode()&os.ModeSymlink == 0 {
+		fr, err := os.Open(path)
 		handleError(err)
 		defer fr.Close()
 
 		_, err = io.Copy(tw, fr)
 		handleError(err)
-  }
+	}
 }
 
 func targzWalk(dirPath string, tw *tar.Writer) {
