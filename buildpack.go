@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"io/ioutil"
+	"launchpad.net/goyaml"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -57,9 +59,11 @@ func (b *Buildpack) Run(appdir string) error {
 	}
 
 	releaseCmd := exec.Command(b.release, b.env.buildDir)
-	if err := execCmd(releaseCmd, os.Stdout, os.Stderr); err != nil {
+	releaseOut := new(bytes.Buffer)
+	if err := execCmd(releaseCmd, releaseOut, os.Stderr); err != nil {
 		return err
 	}
+	writeProcfile(b.env, releaseOut.Bytes())
 
 	return nil
 }
@@ -74,6 +78,23 @@ func execCmd(cmd *exec.Cmd, stdout io.Writer, stderr io.Writer) error {
 	io.Copy(stderr, cmdErr)
 	err := cmd.Wait()
 	return err
+}
+
+func writeProcfile(env BuildEnv, releaseOut []byte) {
+	procfile, err := os.Create(env.buildDir + "/Procfile")
+
+	if os.IsExist(err) {
+		return
+	}
+
+	releaseYaml := make(map[string]map[string]string)
+	goyaml.Unmarshal(releaseOut, &releaseYaml)
+	if processes, exists := releaseYaml["default_process_types"]; exists {
+		for k, v := range processes {
+			procfile.WriteString(k + ": " + v)
+		}
+	}
+	procfile.Close()
 }
 
 type BuildEnv struct {
