@@ -17,6 +17,16 @@ var appName = flag.String("app", "", "Heroku App name")
 var srcDir = flag.String("src", "", "Source directory")
 var bpDir = flag.String("buildpack", "", "Buildpack directory")
 
+func init() {
+	flag.Parse()
+	for _, f := range []string{*apiKey, *appName, *srcDir, *bpDir} {
+		if f == "" {
+			flag.Usage()
+			os.Exit(1)
+		}
+	}
+}
+
 type ProcessTable struct {
 	ProcessTypes map[string]string `json:"process_types"`
 }
@@ -82,7 +92,6 @@ func parseProcfile() *pf.Procfile {
 }
 
 func main() {
-	flag.Parse()
 	bp, err := NewBuildpack(*bpDir)
 
 	if err != nil {

@@ -81,7 +81,7 @@ func targzWalk(dirPath string, tw *tar.Writer) {
 		err = tw.WriteHeader(h)
 		handleError(err)
 
-		if fi.Mode() & os.ModeDir == 0 && fi.Mode() & os.ModeSymlink == 0 {
+		if fi.Mode()&os.ModeDir == 0 && fi.Mode()&os.ModeSymlink == 0 {
 			fr, err := os.Open(path)
 			handleError(err)
 			defer fr.Close()
