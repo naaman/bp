@@ -56,9 +56,6 @@ func scriptIsValid(script string) bool {
 	return true
 }
 
-// Tar a directory from:
-// http://stackoverflow.com/questions/13611100/how-to-write-a-directory-not-just-the-files-in-it-to-a-tar-gz-file-in-golang
-
 func handleError(_e error) {
 	if _e != nil {
 		log.Fatal(_e)
@@ -67,7 +64,9 @@ func handleError(_e error) {
 }
 
 func targzWalk(dirPath string, tw *tar.Writer) {
-	filepath.Walk(dirPath, func(path string, fi os.FileInfo, err error) error {
+	var walkfunc filepath.WalkFunc
+
+	walkfunc = func(path string, fi os.FileInfo, err error) error {
 		h, err := tar.FileInfoHeader(fi, "")
 		handleError(err)
 
@@ -82,7 +81,7 @@ func targzWalk(dirPath string, tw *tar.Writer) {
 		err = tw.WriteHeader(h)
 		handleError(err)
 
-		if fi.Mode()&os.ModeDir == 0 && fi.Mode()&os.ModeSymlink == 0 {
+		if fi.Mode() & os.ModeDir == 0 && fi.Mode() & os.ModeSymlink == 0 {
 			fr, err := os.Open(path)
 			handleError(err)
 			defer fr.Close()
@@ -91,7 +90,9 @@ func targzWalk(dirPath string, tw *tar.Writer) {
 			handleError(err)
 		}
 		return nil
-	})
+	}
+
+	filepath.Walk(dirPath, walkfunc)
 }
 
 func tarGz(inPath string) *os.File {
