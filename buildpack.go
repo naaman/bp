@@ -48,6 +48,9 @@ func (b *Buildpack) checkScripts() bool {
 func (b *Buildpack) Run(appdir string) error {
 	b.env = newBuildEnv(appdir)
 
+	wd, _ := os.Getwd()
+	os.Chdir(b.env.buildDir)
+
 	detectCmd := exec.Command(b.detect, b.env.buildDir)
 	if err := execCmd(detectCmd, os.Stdout, os.Stderr); err != nil {
 		return nil
@@ -64,6 +67,8 @@ func (b *Buildpack) Run(appdir string) error {
 		return err
 	}
 	writeProcfile(b.env, releaseOut.Bytes())
+
+	os.Chdir(wd)
 
 	return nil
 }
