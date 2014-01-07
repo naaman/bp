@@ -2,11 +2,13 @@ package main
 
 import (
 	"archive/tar"
+	"code.google.com/p/go-netrc/netrc"
 	"compress/gzip"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 )
@@ -117,4 +119,17 @@ func tarGz(inPath string) *os.File {
 
 	os.Chdir(wd)
 	return fw
+}
+
+func netrcApiKey() string {
+	if u, err := user.Current(); err == nil {
+		netrcPath := u.HomeDir + "/.netrc"
+		if _, err := os.Stat(netrcPath); err == nil {
+			key, _ := netrc.FindMachine(netrcPath, "api.heroku.com")
+			if key.Password != "" {
+				return key.Password
+			}
+		}
+	}
+	return ""
 }

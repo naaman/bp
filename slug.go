@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-var apiKey = flag.String("key", "", "API key")
+var apiKey = flag.String("key", netrcApiKey(), "API key")
 var appName = flag.String("app", "", "Heroku App name")
 var srcDir = flag.String("src", "", "Source directory")
 var bpDir = flag.String("buildpack", "", "Buildpack directory")
