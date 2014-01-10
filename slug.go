@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"io/ioutil"
 )
 
 type ProcessTable struct {
@@ -21,10 +22,50 @@ type Slug struct {
 	Id           string            `json:"id"`
 	ProcessTypes map[string]string `json:"process_types"`
 	UpdatedAt    time.Time         `json:"updated_at"`
+	slugDir      string
+	httpClient   *http.Client
+	release      *Release
+	tarFile      *os.File
 }
 
 type Release struct {
 	Version int `json:"version"`
+}
+
+func NewSlug(slugDir string) *Slug {
+	slugJson := &Slug{}
+	slugJson.slugDir = slugDir
+
+	client := &http.DefaultClient
+	res, _ := client.Do(slugJson.createSlug())
+	bod, _ := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+
+	json.Unmarshal(bod, &slugJson)
+	slugJson.httpClient = *client
+	slugJson.slugDir = slugDir
+	return slugJson
+}
+
+func (s *Slug) Archive() {
+	s.tarFile = tarGz(strings.TrimRight(s.slugDir, "/"))
+}
+
+func (s *Slug) Push() {
+	_, err := s.httpClient.Do(s.putSlug())
+	defer s.tarFile.Close()
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (s *Slug) Release() {
+	res, _ := s.httpClient.Do(s.createRelease())
+	bod, _ := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	releaseJson := &Release{}
+	json.Unmarshal(bod, &releaseJson)
+	s.release = releaseJson
 }
 
 func herokuReq(method string, resource string, body string) *http.Request {
@@ -41,10 +82,10 @@ func herokuPost(resource string, body string) *http.Request {
 	return req
 }
 
-func createSlug() *http.Request {
+func (s *Slug) createSlug() *http.Request {
 	procTable := new(ProcessTable)
 	procTable.ProcessTypes = make(map[string]string)
-	procfile := parseProcfile()
+	procfile := s.parseProcfile()
 	for _, e := range procfile.Entries {
 		procTable.ProcessTypes[e.Type] = e.Command
 	}
@@ -52,24 +93,24 @@ func createSlug() *http.Request {
 	return herokuPost("slugs", string(procTableJson))
 }
 
-func createRelease(s *Slug) *http.Request {
+func (s *Slug) createRelease() *http.Request {
 	slugJson := fmt.Sprintf(`{"slug":"%s"}`, s.Id)
 	return herokuPost("releases", slugJson)
 }
 
-func putSlug(slug *Slug, tarFile *os.File) *http.Request {
-	tarFileStat, err := tarFile.Stat()
-	tarFile, _ = os.Open(tarFile.Name())
+func (s *Slug) putSlug() *http.Request {
+	tarFileStat, err := s.tarFile.Stat()
+	tarFile, _ := os.Open(s.tarFile.Name())
 	if err != nil {
 		panic(err)
 	}
-	req, _ := http.NewRequest("PUT", slug.Blob["put"], tarFile)
+	req, _ := http.NewRequest("PUT", s.Blob["put"], tarFile)
 	req.ContentLength = tarFileStat.Size()
 	return req
 }
 
-func parseProcfile() *pf.Procfile {
-	procfileFile, _ := os.Open(*srcDir + "/Procfile")
+func (s *Slug) parseProcfile() *pf.Procfile {
+	procfileFile, _ := os.Open(s.slugDir + "/Procfile")
 	procfile, _ := pf.ParseProcfile(procfileFile)
 	return procfile
 }
