@@ -1,10 +1,8 @@
-package main
+package bp
 
 import (
-	"code.google.com/p/go-netrc/netrc"
 	"io"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 )
@@ -52,17 +50,4 @@ func scriptIsValid(script string) bool {
 		return false
 	}
 	return true
-}
-
-func netrcApiKey() string {
-	if u, err := user.Current(); err == nil {
-		netrcPath := u.HomeDir + "/.netrc"
-		if _, err := os.Stat(netrcPath); err == nil {
-			key, _ := netrc.FindMachine(netrcPath, "api.heroku.com")
-			if key.Password != "" {
-				return key.Password
-			}
-		}
-	}
-	return ""
 }

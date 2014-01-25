@@ -1,10 +1,13 @@
 package main
 
 import (
+	"code.google.com/p/go-netrc/netrc"
 	"flag"
 	"fmt"
+	"github.com/naaman/bp"
 	"github.com/naaman/slug"
 	"os"
+	"os/user"
 )
 
 var apiKey = flag.String("key", netrcApiKey(), "API key")
@@ -23,20 +26,20 @@ func init() {
 }
 
 func main() {
-	bp, err := NewBuildpack(*bpDir)
+	buildpack, err := bp.NewBuildpack(*bpDir)
 
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	if err := bp.Run(*srcDir); err != nil {
+	if err := buildpack.Run(*srcDir); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	fmt.Print("Creating slug...")
-	herokuSlug := slug.NewSlug(*apiKey, *appName, bp.env.buildDir)
+	herokuSlug := slug.NewSlug(*apiKey, *appName, buildpack.BuildDir())
 	fmt.Println("done")
 
 	fmt.Print("Creating slug archive...")
@@ -50,4 +53,17 @@ func main() {
 	fmt.Print("Releasing slug...")
 	release := herokuSlug.Release()
 	fmt.Printf("done (v%d)\n", release.Version)
+}
+
+func netrcApiKey() string {
+	if u, err := user.Current(); err == nil {
+		netrcPath := u.HomeDir + "/.netrc"
+		if _, err := os.Stat(netrcPath); err == nil {
+			key, _ := netrc.FindMachine(netrcPath, "api.heroku.com")
+			if key.Password != "" {
+				return key.Password
+			}
+		}
+	}
+	return ""
 }

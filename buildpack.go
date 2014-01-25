@@ -1,4 +1,4 @@
-package main
+package bp
 
 import (
 	"bytes"
@@ -71,6 +71,10 @@ func (b *Buildpack) Run(appdir string) error {
 	os.Chdir(wd)
 
 	return nil
+}
+
+func (b *Buildpack) BuildDir() string {
+	return b.env.buildDir
 }
 
 func execCmd(cmd *exec.Cmd, stdout io.Writer, stderr io.Writer) error {
