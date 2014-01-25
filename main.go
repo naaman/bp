@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/naaman/slug"
 	"os"
 )
 
@@ -35,18 +36,18 @@ func main() {
 	}
 
 	fmt.Print("Creating slug...")
-	slug := NewSlug(bp.env.buildDir)
+	herokuSlug := slug.NewSlug(*apiKey, *appName, bp.env.buildDir)
 	fmt.Println("done")
 
 	fmt.Print("Creating slug archive...")
-	slug.Archive()
-	fmt.Printf("done (%s)\n", slug.tarFile.Name())
+	slugFile := herokuSlug.Archive()
+	fmt.Printf("done (%s)\n", slugFile.Name())
 
 	fmt.Print("Uploading slug...")
-	slug.Push()
+	herokuSlug.Push()
 	fmt.Println("done")
 
 	fmt.Print("Releasing slug...")
-	slug.Release()
-	fmt.Printf("done (v%d)\n", slug.release.Version)
+	release := herokuSlug.Release()
+	fmt.Printf("done (v%d)\n", release.Version)
 }
