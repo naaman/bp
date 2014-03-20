@@ -21,12 +21,12 @@ type Buildpack struct {
 func NewBuildpack(basedir string) (Buildpack, error) {
 	absBasedir, absBasedirErr := filepath.Abs(basedir)
 	if absBasedirErr != nil {
-		return Buildpack{}, absBasedirErr
+		return nil, absBasedirErr
 	}
 	absBindir := absBasedir + "/bin"
 	bindir, bindirErr := os.Stat(absBindir)
 	if bindirErr != nil || !bindir.IsDir() {
-		return Buildpack{}, errors.New("Buildpack does not contain a `bin` directory")
+		return nil, errors.New("Buildpack does not contain a `bin` directory")
 	}
 	newBuildpack := Buildpack{
 		detect:  absBindir + "/detect",
@@ -34,7 +34,7 @@ func NewBuildpack(basedir string) (Buildpack, error) {
 		release: absBindir + "/release",
 	}
 	if !newBuildpack.checkScripts() {
-		return Buildpack{}, errors.New("Buildpack does not have executable detect, compile, and release scripts.")
+		return nil, errors.New("Buildpack does not have executable detect, compile, and release scripts.")
 	}
 	return newBuildpack, nil
 }
