@@ -6,6 +6,13 @@ Simple buildpack runner in Go.
 Usage
 =====
 
+CLI
+
+```
+bp -app 'example-app' -buildpack 'http://github.com/heroku/heroku-buildpack-ruby' -src '/user/home/exampleapp'
+```
+
+Code
 ```
 bp, err := NewBuildpack(*bpDir)
 
