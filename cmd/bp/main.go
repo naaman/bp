@@ -14,6 +14,7 @@ var apiKey = flag.String("key", netrcApiKey(), "API key")
 var appName = flag.String("app", "", "Heroku App name")
 var srcDir = flag.String("src", "", "Source directory")
 var bpDir = flag.String("buildpack", "", "Buildpack directory")
+var createRelease = flag.Bool("release", true, "Create release")
 
 func init() {
 	flag.Parse()
@@ -46,13 +47,15 @@ func main() {
 	slugFile := herokuSlug.Archive()
 	fmt.Printf("done (%s)\n", slugFile.Name())
 
-	fmt.Print("Uploading slug...")
-	herokuSlug.Push()
-	fmt.Println("done")
+  if *createRelease {
+    fmt.Print("Uploading slug...")
+    herokuSlug.Push()
+    fmt.Println("done")
 
-	fmt.Print("Releasing slug...")
-	release := herokuSlug.Release()
-	fmt.Printf("done (v%d)\n", release.Version)
+    fmt.Print("Releasing slug...")
+    release := herokuSlug.Release()
+    fmt.Printf("done (v%d)\n", release.Version)
+  }
 }
 
 func netrcApiKey() string {
